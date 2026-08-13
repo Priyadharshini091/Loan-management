@@ -1,33 +1,78 @@
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import { BarChart3, CalendarDays, ChevronDown, CreditCard, FileBarChart, Home, LogOut, Menu, Settings, Users, WalletCards, X } from "lucide-react";
+import { BarChart3, CalendarDays, ChevronDown, CreditCard, FileBarChart, Home, LogOut, Menu, Settings, Users, WalletCards, MapPin, Download, Database, Layers } from "lucide-react";
 import { useState } from "react";
+import type { User } from "../types";
 import { Button } from "./Button";
 
 const navGroups = [
-  { label: "Dashboard", path: "/dashboard", icon: Home },
-  { label: "Customers", icon: Users, children: [{ label: "All Customers", path: "/customers" }, { label: "Add Customer", path: "/customers/new" }] },
-  { label: "Loans", icon: WalletCards, children: [{ label: "All Loans", path: "/loans" }, { label: "Add Loan", path: "/loans/new" }] },
-  { label: "Collections", icon: CreditCard, children: [{ label: "Today's Due", path: "/collections/today" }, { label: "Payment History", path: "/payments" }] },
-  { label: "Reports", icon: FileBarChart, children: [{ label: "Daily Report", path: "/reports/daily" }, { label: "Weekly Report", path: "/reports/weekly" }, { label: "Monthly Report", path: "/reports/monthly" }] },
+  { label: "Main Dashboard", path: "/dashboard", icon: Home },
+  { label: "Area Management", path: "/areas", icon: MapPin },
+  { label: "Area Dashboard", path: "/areas/dashboard", icon: Layers },
+  { label: "Area Collection", path: "/collections/area", icon: CreditCard },
+  {
+    label: "Customers",
+    icon: Users,
+    children: [
+      { label: "All Customers", path: "/customers" },
+      { label: "Add Customer", path: "/customers/new" },
+    ],
+  },
+  {
+    label: "Loans",
+    icon: WalletCards,
+    children: [
+      { label: "All Loans", path: "/loans" },
+      { label: "Add Loan", path: "/loans/new" },
+    ],
+  },
+  {
+    label: "Collections",
+    icon: CreditCard,
+    children: [
+      { label: "Today's Due", path: "/collections/today" },
+      { label: "Payment History", path: "/payments" },
+    ],
+  },
+  {
+    label: "Reports",
+    icon: FileBarChart,
+    children: [
+      { label: "Daily Report", path: "/reports/daily" },
+      { label: "Weekly Report", path: "/reports/weekly" },
+      { label: "Monthly Report", path: "/reports/monthly" },
+    ],
+  },
+  { label: "Import / Export", path: "/import-export", icon: Download },
+  { label: "Backups", path: "/backups", icon: Database },
   { label: "Users", path: "/users", icon: Users },
   { label: "Settings", path: "/settings", icon: Settings },
 ];
 
 function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   const navigate = useNavigate();
+
+  const userJson = localStorage.getItem("loan_user");
+  const user: User | null = userJson ? JSON.parse(userJson) : null;
+
   const logout = () => {
+    localStorage.removeItem("loan_auth_token");
+    localStorage.removeItem("loan_user");
     localStorage.removeItem("loan_demo_auth");
     navigate("/login");
   };
+
   return (
     <aside className="flex h-full w-72 flex-col border-r border-sky-100 bg-white">
       <div className="flex items-center gap-3 border-b border-sky-100 px-5 py-5">
-        <div className="rounded-md bg-sky-600 p-2 text-white"><BarChart3 size={22} /></div>
+        <div className="rounded-md bg-sky-600 p-2 text-white">
+          <BarChart3 size={22} />
+        </div>
         <div>
           <p className="text-sm font-black tracking-wide text-slate-950">LOAN MANAGEMENT</p>
           <p className="text-xs font-semibold text-sky-700">Finance Office</p>
         </div>
       </div>
+
       <nav className="flex-1 space-y-1 overflow-y-auto p-3">
         {navGroups.map((item) => {
           const Icon = item.icon;
@@ -41,7 +86,16 @@ function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
                 </div>
                 <div className="ml-8 grid gap-1">
                   {item.children!.map((child) => (
-                    <NavLink key={child.path} onClick={onNavigate} to={child.path} className={({ isActive }) => `rounded-md px-3 py-2 text-sm font-semibold ${isActive ? "bg-sky-100 text-sky-800" : "text-slate-600 hover:bg-sky-50"}`}>
+                    <NavLink
+                      key={child.path}
+                      onClick={onNavigate}
+                      to={child.path}
+                      className={({ isActive }) =>
+                        `rounded-md px-3 py-2 text-sm font-semibold ${
+                          isActive ? "bg-sky-100 text-sky-800" : "text-slate-600 hover:bg-sky-50"
+                        }`
+                      }
+                    >
                       {child.label}
                     </NavLink>
                   ))}
@@ -50,50 +104,91 @@ function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
             );
           }
           return (
-            <NavLink key={item.path} onClick={onNavigate} to={item.path} className={({ isActive }) => `flex items-center gap-3 rounded-md px-3 py-2 text-sm font-bold ${isActive ? "bg-sky-100 text-sky-800" : "text-slate-700 hover:bg-sky-50"}`}>
+            <NavLink
+              key={item.path}
+              onClick={onNavigate}
+              to={item.path}
+              className={({ isActive }) =>
+                `flex items-center gap-3 rounded-md px-3 py-2 text-sm font-bold ${
+                  isActive ? "bg-sky-100 text-sky-800" : "text-slate-700 hover:bg-sky-50"
+                }`
+              }
+            >
               <Icon size={18} />
               {item.label}
             </NavLink>
           );
         })}
       </nav>
-      <button onClick={logout} className="m-3 flex items-center gap-3 rounded-md px-3 py-3 text-sm font-bold text-red-700 hover:bg-red-50">
-        <LogOut size={18} />
-        Logout
-      </button>
+
+      <div className="border-t border-sky-100 p-3">
+        <div className="mb-2 px-3 py-1">
+          <p className="text-xs font-bold text-slate-900">{user?.username || "Admin User"}</p>
+          <p className="text-[10px] font-semibold uppercase text-sky-700">{user?.role || "ADMIN"}</p>
+        </div>
+        <button
+          onClick={logout}
+          className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-bold text-red-700 hover:bg-red-50"
+        >
+          <LogOut size={18} />
+          Logout
+        </button>
+      </div>
     </aside>
   );
 }
 
 export function Layout() {
   const [open, setOpen] = useState(false);
+
   return (
     <div className="min-h-screen bg-sky-50/60">
-      <div className="fixed inset-y-0 left-0 hidden lg:block"><Sidebar /></div>
+      <div className="fixed inset-y-0 left-0 hidden lg:block">
+        <Sidebar />
+      </div>
       {open ? (
         <div className="fixed inset-0 z-40 lg:hidden">
-          <button aria-label="Close menu" className="absolute inset-0 bg-slate-900/30" onClick={() => setOpen(false)} />
-          <div className="relative h-full"><Sidebar onNavigate={() => setOpen(false)} /></div>
+          <button
+            aria-label="Close menu"
+            className="absolute inset-0 bg-slate-900/30"
+            onClick={() => setOpen(false)}
+          />
+          <div className="relative h-full">
+            <Sidebar onNavigate={() => setOpen(false)} />
+          </div>
         </div>
       ) : null}
+
       <main className="lg:pl-72">
         <header className="sticky top-0 z-30 flex min-h-16 items-center justify-between border-b border-sky-100 bg-white/95 px-4 backdrop-blur md:px-6">
           <div className="flex items-center gap-3">
-            <Button variant="ghost" className="px-2 lg:hidden" icon={<Menu size={22} />} onClick={() => setOpen(true)} aria-label="Open menu" />
+            <Button
+              variant="ghost"
+              className="px-2 lg:hidden"
+              icon={<Menu size={22} />}
+              onClick={() => setOpen(true)}
+              aria-label="Open menu"
+            />
             <div>
               <p className="text-sm font-bold text-slate-900">Loan Management System</p>
-              <p className="hidden text-xs font-semibold text-slate-500 sm:block"><CalendarDays className="mr-1 inline" size={14} />09 Aug 2026</p>
+              <p className="hidden text-xs font-semibold text-slate-500 sm:block">
+                <CalendarDays className="mr-1 inline" size={14} />
+                {new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
+              </p>
             </div>
           </div>
+
           <div className="flex items-center gap-3">
-            <div className="hidden text-right sm:block">
-              <p className="text-sm font-bold text-slate-900">Admin</p>
-              <p className="text-xs font-semibold text-slate-500">ADMIN</p>
+            <div className="text-right">
+              <p className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
+                Excel Data Store Active
+              </p>
             </div>
-            <button className="rounded-md p-2 text-slate-500 hover:bg-sky-50 lg:hidden" onClick={() => setOpen(false)} aria-label="Close"><X size={18} /></button>
           </div>
         </header>
-        <div className="p-4 md:p-6"><Outlet /></div>
+        <div className="p-4 md:p-6">
+          <Outlet />
+        </div>
       </main>
     </div>
   );

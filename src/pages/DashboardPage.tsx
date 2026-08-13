@@ -1,44 +1,141 @@
-import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { AlertTriangle, IndianRupee, TrendingUp, Users, Wallet, WalletCards } from "lucide-react";
-import { dashboardStats, dailyCollections, loanStatus, monthlyCollections, paymentStatus } from "../data/mockDashboard";
+import React, { useState, useEffect } from "react";
+import type { Area, DashboardStats } from "../types";
+import { areaApi, dashboardApi } from "../api";
 import { StatCard } from "../components/StatCard";
-import { formatCurrency } from "../utils/format";
-
-const colors = ["#0284c7", "#16a34a", "#f59e0b", "#dc2626"];
-
-function ChartCard({ title, children }: { title: string; children: React.ReactNode }) {
-  return <section className="rounded-lg border border-sky-100 bg-white p-4 shadow-sm"><h2 className="mb-4 text-base font-black text-slate-900">{title}</h2><div className="h-72">{children}</div></section>;
-}
+import { Users, Wallet, CreditCard, Clock, AlertTriangle, CheckCircle2, MapPin, ChevronDown } from "lucide-react";
 
 export default function DashboardPage() {
+  const [areas, setAreas] = useState<Area[]>([]);
+  const [selectedAreaId, setSelectedAreaId] = useState<string>(""); // "" = All Areas
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const loadData = async (areaId: string) => {
+    setLoading(true);
+    try {
+      const areaList = await areaApi.getAreas();
+      setAreas(areaList);
+
+      const res = await dashboardApi.getDashboard(areaId || undefined);
+      setStats(res);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadData(selectedAreaId);
+  }, [selectedAreaId]);
+
   return (
-    <div className="grid gap-6">
-      <div>
-        <h1 className="text-2xl font-black text-slate-950">Dashboard</h1>
-        <p className="text-sm font-semibold text-slate-500">Live-style financial overview using realistic mock data.</p>
+    <div className="space-y-6">
+      {/* Top Bar Banner with Area Filter */}
+      <div className="flex flex-col gap-4 rounded-xl border border-sky-100 bg-white p-6 shadow-xs sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">Main Dashboard</h1>
+          <p className="text-sm font-medium text-slate-500">
+            Overall business overview & performance analytics
+          </p>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <label className="text-xs font-bold text-slate-500 uppercase flex items-center gap-1">
+            <MapPin size={14} className="text-sky-600" /> Filter Area:
+          </label>
+          <div className="relative">
+            <select
+              value={selectedAreaId}
+              onChange={(e) => setSelectedAreaId(e.target.value)}
+              className="appearance-none rounded-lg border border-sky-200 bg-sky-50 px-4 py-2 pr-10 text-sm font-bold text-sky-900 shadow-xs focus:border-sky-500 focus:outline-none"
+            >
+              <option value="">All Areas (Overall)</option>
+              {areas.map((a) => (
+                <option key={a.area_id} value={a.area_id}>
+                  {a.area_name}
+                </option>
+              ))}
+            </select>
+            <ChevronDown className="pointer-events-none absolute right-3 top-2.5 text-sky-600" size={16} />
+          </div>
+        </div>
       </div>
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
-        <StatCard title="Total Customers" value={dashboardStats.totalCustomers} detail="8 added this month" icon={<Users size={22} />} />
-        <StatCard title="Active Loans" value={dashboardStats.activeLoans} detail="Across 4 EMI cycles" icon={<WalletCards size={22} />} />
-        <StatCard title="Total Loan Given" value={formatCurrency(dashboardStats.totalLoanGiven)} detail="Mock portfolio value" icon={<IndianRupee size={22} />} />
-        <StatCard title="Collection Today" value={formatCurrency(dashboardStats.collectionToday)} detail="67% of due collected" icon={<TrendingUp size={22} />} />
-        <StatCard title="Pending Amount" value={formatCurrency(dashboardStats.pendingAmount)} detail="Requires follow-up" icon={<Wallet size={22} />} />
-        <StatCard title="Overdue Customers" value={dashboardStats.overdueCustomers} detail="High priority" icon={<AlertTriangle size={22} />} />
-      </div>
-      <div className="grid gap-6 xl:grid-cols-2">
-        <ChartCard title="Daily Collection Chart">
-          <ResponsiveContainer><AreaChart data={dailyCollections}><CartesianGrid strokeDasharray="3 3" stroke="#e0f2fe" /><XAxis dataKey="name" /><YAxis /><Tooltip formatter={(value) => formatCurrency(Number(value))} /><Area type="monotone" dataKey="amount" stroke="#0284c7" fill="#bae6fd" /></AreaChart></ResponsiveContainer>
-        </ChartCard>
-        <ChartCard title="Monthly Collection Chart">
-          <ResponsiveContainer><BarChart data={monthlyCollections}><CartesianGrid strokeDasharray="3 3" stroke="#e0f2fe" /><XAxis dataKey="name" /><YAxis /><Tooltip formatter={(value) => formatCurrency(Number(value))} /><Bar dataKey="amount" fill="#0ea5e9" radius={[4, 4, 0, 0]} /></BarChart></ResponsiveContainer>
-        </ChartCard>
-        <ChartCard title="Loan Status Chart">
-          <ResponsiveContainer><PieChart><Pie dataKey="value" data={loanStatus} outerRadius={95} label>{loanStatus.map((entry, index) => <Cell key={entry.name} fill={colors[index]} />)}</Pie><Tooltip /></PieChart></ResponsiveContainer>
-        </ChartCard>
-        <ChartCard title="Payment Status">
-          <ResponsiveContainer><PieChart><Pie dataKey="value" data={paymentStatus} innerRadius={55} outerRadius={95} label>{paymentStatus.map((entry, index) => <Cell key={entry.name} fill={colors[index]} />)}</Pie><Tooltip /></PieChart></ResponsiveContainer>
-        </ChartCard>
-      </div>
+
+      {loading ? (
+        <div className="py-12 text-center text-slate-500 font-medium">Loading dashboard statistics...</div>
+      ) : stats ? (
+        <>
+          {/* Main Cards */}
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <StatCard title="Total Customers" value={stats.total_customers} icon={<Users size={22} />} />
+            <StatCard title="Total Active Loans" value={stats.active_loans} icon={<Wallet size={22} />} />
+            <StatCard
+              title="Total Loan Given"
+              value={`₹${stats.total_loan_given.toLocaleString("en-IN")}`}
+              icon={<CreditCard size={22} />}
+            />
+            <StatCard
+              title="Today's Collection"
+              value={`₹${stats.collection_today.toLocaleString("en-IN")}`}
+              icon={<CheckCircle2 size={22} />}
+            />
+            <StatCard
+              title="Total Pending"
+              value={`₹${stats.pending_amount.toLocaleString("en-IN")}`}
+              icon={<Clock size={22} />}
+            />
+            <StatCard
+              title="Overdue Customers"
+              value={stats.overdue_customers}
+              icon={<AlertTriangle size={22} />}
+            />
+          </div>
+
+          {/* Area Breakdown Summaries */}
+          {stats.area_summaries && stats.area_summaries.length > 0 && (
+            <div className="rounded-xl border border-sky-100 bg-white p-5 shadow-xs">
+              <h2 className="mb-4 text-lg font-bold text-slate-900">Area Performance Breakdown</h2>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm text-slate-700">
+                  <thead className="border-b border-sky-100 bg-sky-50/50 text-xs font-bold uppercase text-slate-500">
+                    <tr>
+                      <th className="px-4 py-3">Area Name</th>
+                      <th className="px-4 py-3">Customers</th>
+                      <th className="px-4 py-3">Active Loans</th>
+                      <th className="px-4 py-3">Loan Amount</th>
+                      <th className="px-4 py-3">Collected</th>
+                      <th className="px-4 py-3">Pending</th>
+                      <th className="px-4 py-3">Overdue</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {stats.area_summaries.map((a) => (
+                      <tr key={a.area_id} className="hover:bg-sky-50/40">
+                        <td className="px-4 py-3.5 font-bold text-slate-900">{a.area_name}</td>
+                        <td className="px-4 py-3.5 font-medium">{a.total_customers}</td>
+                        <td className="px-4 py-3.5 font-medium">{a.total_active_loans}</td>
+                        <td className="px-4 py-3.5 font-bold text-slate-800">
+                          ₹{a.total_loan_given.toLocaleString("en-IN")}
+                        </td>
+                        <td className="px-4 py-3.5 font-bold text-emerald-600">
+                          ₹{a.total_collected.toLocaleString("en-IN")}
+                        </td>
+                        <td className="px-4 py-3.5 font-bold text-amber-600">
+                          ₹{a.total_pending.toLocaleString("en-IN")}
+                        </td>
+                        <td className="px-4 py-3.5 font-bold text-red-600">
+                          ₹{a.overdue_amount.toLocaleString("en-IN")}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </>
+      ) : null}
     </div>
   );
 }

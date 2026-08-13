@@ -1,79 +1,149 @@
-import { Save, X } from "lucide-react";
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import type { Area } from "../types";
+import { areaApi, customerApi } from "../api";
+import { useToast } from "../components/Toast";
 import { Button } from "../components/Button";
 import { Input } from "../components/Input";
-import { useAppData } from "../context/AppDataContext";
-import { customerService } from "../services/customerService";
-import { useToast } from "../components/Toast";
+import { Select } from "../components/Select";
+import { BackButton } from "../components/BackButton";
 
 export default function AddCustomerPage() {
+  const [areas, setAreas] = useState<Area[]>([]);
+  const [customerName, setCustomerName] = useState("");
+  const [mobileNumber, setMobileNumber] = useState("");
+  const [address, setAddress] = useState("");
+  const [areaId, setAreaId] = useState("");
+  const [aadhaarNumber, setAadhaarNumber] = useState("");
+  const [guarantorName, setGuarantorName] = useState("");
+  const [guarantorMobile, setGuarantorMobile] = useState("");
+  const [loading, setLoading] = useState(false);
+
   const navigate = useNavigate();
-  const { refresh } = useAppData();
   const { showToast } = useToast();
-  const [photoUrl, setPhotoUrl] = useState("");
-  const [form, setForm] = useState({
-    name: "", mobile: "", alternateMobile: "", address: "", aadhaar: "", occupation: "", guarantorName: "", guarantorMobile: "", guarantorAddress: "", guarantorAadhaar: "", notes: "",
-  });
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const update = (key: keyof typeof form, value: string) => setForm((current) => ({ ...current, [key]: value }));
 
-  const submit = async (event: React.FormEvent) => {
-    event.preventDefault();
-    const nextErrors: Record<string, string> = {};
-    if (!form.name.trim()) nextErrors.name = "Name is required";
-    if (!/^\d{10}$/.test(form.mobile)) nextErrors.mobile = "Mobile must be 10 digits";
-    if (form.aadhaar && !/^\d{12}$/.test(form.aadhaar)) nextErrors.aadhaar = "Aadhaar must be 12 digits";
-    setErrors(nextErrors);
-    if (Object.keys(nextErrors).length) return;
-    await customerService.create({
-      name: form.name,
-      mobile: form.mobile,
-      alternateMobile: form.alternateMobile,
-      address: form.address,
-      aadhaar: form.aadhaar,
-      occupation: form.occupation,
-      photoUrl,
-      guarantor: { name: form.guarantorName, mobile: form.guarantorMobile, address: form.guarantorAddress, aadhaar: form.guarantorAadhaar },
-      notes: form.notes,
+  useEffect(() => {
+    areaApi.getAreas().then((list) => {
+      setAreas(list);
+      if (list.length > 0) setAreaId(list[0].area_id);
     });
-    await refresh();
-    showToast("Customer created successfully.");
-    navigate("/customers");
-  };
+  }, []);
 
-  const upload = (file?: File) => {
-    if (!file) return;
-    setPhotoUrl(URL.createObjectURL(file));
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!customerName.trim()) {
+      showToast("Customer name is required", "error");
+      return;
+    }
+    if (mobileNumber.replace(/\D/g, "").length !== 10) {
+      showToast("Mobile number must be a valid 10-digit number", "error");
+      return;
+    }
+    if (!areaId) {
+      showToast("Please select an Area for the customer", "error");
+      return;
+    }
+    if (aadhaarNumber && aadhaarNumber.replace(/\D/g, "").length !== 12) {
+      showToast("Aadhaar number must be a valid 12-digit number", "error");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await customerApi.createCustomer({
+        customer_name: customerName,
+        mobile_number: mobileNumber,
+        address,
+        area_id: areaId,
+        aadhaar_number: aadhaarNumber,
+        guarantor_name: guarantorName,
+        guarantor_mobile: guarantorMobile,
+      });
+
+      showToast("Customer created successfully", "success");
+      navigate("/customers");
+    } catch (err: any) {
+      showToast(err.response?.data?.detail || "Failed to create customer", "error");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <form onSubmit={submit} className="grid gap-6">
-      <div><h1 className="text-2xl font-black text-slate-950">Add Customer</h1><p className="text-sm font-semibold text-slate-500">Customer information is stored in local demo state only.</p></div>
-      <section className="rounded-lg border border-sky-100 bg-white p-5 shadow-sm">
-        <h2 className="mb-4 text-lg font-black text-slate-900">Customer Information</h2>
-        <div className="grid gap-4 md:grid-cols-2">
-          <Input label="Customer Name *" value={form.name} onChange={(event) => update("name", event.target.value)} error={errors.name} />
-          <Input label="Mobile Number *" value={form.mobile} onChange={(event) => update("mobile", event.target.value)} error={errors.mobile} />
-          <Input label="Alternate Mobile" value={form.alternateMobile} onChange={(event) => update("alternateMobile", event.target.value)} />
-          <Input label="Aadhaar Number" value={form.aadhaar} onChange={(event) => update("aadhaar", event.target.value)} error={errors.aadhaar} />
-          <Input label="Occupation" value={form.occupation} onChange={(event) => update("occupation", event.target.value)} />
-          <label className="grid gap-1.5 text-sm font-medium text-slate-700"><span>Photo Upload</span><input type="file" accept="image/*" onChange={(event) => upload(event.target.files?.[0])} className="rounded-md border border-sky-100 bg-white px-3 py-2" /></label>
-          <label className="grid gap-1.5 text-sm font-medium text-slate-700 md:col-span-2"><span>Address</span><textarea value={form.address} onChange={(event) => update("address", event.target.value)} className="min-h-24 rounded-md border border-sky-100 bg-white px-3 py-2" /></label>
+    <div className="mx-auto max-w-2xl space-y-6">
+      <div className="flex items-center gap-3">
+        <BackButton />
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">Add New Customer</h1>
+          <p className="text-sm font-medium text-slate-500">Register new borrower profile</p>
         </div>
-        {photoUrl ? <img src={photoUrl} alt="Customer preview" className="mt-4 h-24 w-24 rounded-md object-cover" /> : null}
-      </section>
-      <section className="rounded-lg border border-sky-100 bg-white p-5 shadow-sm">
-        <h2 className="mb-4 text-lg font-black text-slate-900">Guarantor Information</h2>
-        <div className="grid gap-4 md:grid-cols-2">
-          <Input label="Guarantor Name" value={form.guarantorName} onChange={(event) => update("guarantorName", event.target.value)} />
-          <Input label="Guarantor Mobile" value={form.guarantorMobile} onChange={(event) => update("guarantorMobile", event.target.value)} />
-          <Input label="Guarantor Aadhaar" value={form.guarantorAadhaar} onChange={(event) => update("guarantorAadhaar", event.target.value)} />
-          <Input label="Guarantor Address" value={form.guarantorAddress} onChange={(event) => update("guarantorAddress", event.target.value)} />
-          <label className="grid gap-1.5 text-sm font-medium text-slate-700 md:col-span-2"><span>Notes</span><textarea value={form.notes} onChange={(event) => update("notes", event.target.value)} className="min-h-24 rounded-md border border-sky-100 bg-white px-3 py-2" /></label>
+      </div>
+
+      <form onSubmit={handleSubmit} className="rounded-xl border border-sky-100 bg-white p-6 shadow-xs space-y-4">
+        <Input
+          label="Customer Full Name *"
+          value={customerName}
+          onChange={(e) => setCustomerName(e.target.value)}
+          placeholder="e.g. Priya Dharshini"
+          required
+        />
+
+        <Input
+          label="Mobile Number (10 digits) *"
+          value={mobileNumber}
+          onChange={(e) => setMobileNumber(e.target.value)}
+          placeholder="e.g. 9876543210"
+          required
+        />
+
+        <Select
+          label="Area / Collection Zone *"
+          value={areaId}
+          onChange={(e) => setAreaId(e.target.value)}
+          options={areas.map((a) => ({ value: a.area_id, label: `${a.area_name} (${a.district})` }))}
+          required
+        />
+
+        <Input
+          label="Address"
+          value={address}
+          onChange={(e) => setAddress(e.target.value)}
+          placeholder="Street address..."
+        />
+
+        <Input
+          label="Aadhaar Number (12 digits)"
+          value={aadhaarNumber}
+          onChange={(e) => setAadhaarNumber(e.target.value)}
+          placeholder="e.g. 987654321012"
+        />
+
+        <div className="border-t border-slate-100 pt-4 space-y-4">
+          <h3 className="text-sm font-bold text-slate-800">Guarantor Information</h3>
+          <Input
+            label="Guarantor Name"
+            value={guarantorName}
+            onChange={(e) => setGuarantorName(e.target.value)}
+            placeholder="e.g. Murugan"
+          />
+          <Input
+            label="Guarantor Mobile Number"
+            value={guarantorMobile}
+            onChange={(e) => setGuarantorMobile(e.target.value)}
+            placeholder="e.g. 9876543219"
+          />
         </div>
-      </section>
-      <div className="flex justify-end gap-3"><Button type="button" variant="secondary" icon={<X size={18} />} onClick={() => navigate("/customers")}>Cancel</Button><Button type="submit" icon={<Save size={18} />}>Save Customer</Button></div>
-    </form>
+
+        <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
+          <Button variant="outline" type="button" onClick={() => navigate("/customers")}>
+            Cancel
+          </Button>
+          <Button type="submit" disabled={loading}>
+            {loading ? "Saving..." : "Save Customer"}
+          </Button>
+        </div>
+      </form>
+    </div>
   );
 }
