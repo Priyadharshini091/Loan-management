@@ -2,20 +2,20 @@ import { createContext, useContext, useState, type ReactNode } from "react";
 import { CheckCircle2 } from "lucide-react";
 
 interface ToastContextValue {
-  showToast: (message: string, type?: "success" | "error" | "info") => void;
+  showToast: (message: string, type?: "success" | "error" | "info" | "warning") => void;
 }
 
 const ToastContext = createContext<ToastContextValue | null>(null);
 
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [message, setMessage] = useState("");
-  const [type, setType] = useState<"success" | "error" | "info">("success");
-  const showToast = (next: string, nextType: "success" | "error" | "info" = "success") => {
+  const [type, setType] = useState<"success" | "error" | "info" | "warning">("success");
+  const showToast = (next: string, nextType: "success" | "error" | "info" | "warning" = "success") => {
     setMessage(next);
     setType(nextType);
     window.setTimeout(() => setMessage(""), 2800);
   };
-  const tone = type === "error" ? "border-red-200 text-red-700" : type === "info" ? "border-sky-200 text-sky-700" : "border-green-200 text-green-700";
+  const tone = type === "error" ? "border-red-200 text-red-700" : type === "warning" ? "border-amber-200 text-amber-700" : type === "info" ? "border-sky-200 text-sky-700" : "border-green-200 text-green-700";
   return (
     <ToastContext.Provider value={{ showToast }}>
       {children}
