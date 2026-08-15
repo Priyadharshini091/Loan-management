@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: loan-management-api
+    env: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: python -m uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    disk:
+      name: loan-management-data
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: CORS_ORIGINS
+        value: https://loanmanagement10.netlify.app
+      - key: REPORT_EMAIL
+        value: vfffinance@gmail.com
+      - key: EXCEL_FILE_PATH
+        value: /var/data/loan_management.xlsx
+      - key: BACKUP_DIR
+        value: /var/data/backups

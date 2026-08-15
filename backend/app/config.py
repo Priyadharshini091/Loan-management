@@ -15,10 +15,15 @@ class Settings(BaseSettings):
     SMTP_USERNAME: str = ""
     SMTP_PASSWORD: str = ""
     REPORT_EMAIL: str = "vfffinance@gmail.com"
+    CORS_ORIGINS: str = "http://localhost:5173,http://127.0.0.1:5173,https://loanmanagement10.netlify.app"
 
     BASE_DIR: str = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     EXCEL_FILE_PATH: str = os.path.join(BASE_DIR, "data", "loan_management.xlsx")
     BACKUP_DIR: str = os.path.join(BASE_DIR, "data", "backups")
+
+    @property
+    def cors_origin_list(self) -> list[str]:
+        return [origin.strip() for origin in self.CORS_ORIGINS.split(",") if origin.strip()]
 
     class Config:
         env_file = ".env"
