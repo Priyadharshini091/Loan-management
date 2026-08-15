@@ -26,7 +26,9 @@ export default function LoginPage() {
       showToast(`Welcome back, ${data.user.username}!`, "success");
       navigate("/dashboard");
     } catch (err: any) {
-      showToast(err.response?.data?.detail || "Invalid username or password", "error");
+      const message = err.response?.data?.detail
+        || "Cannot reach backend API. Check VITE_API_URL and make sure the backend is deployed/running.";
+      showToast(message, "error");
     } finally {
       setLoading(false);
     }
