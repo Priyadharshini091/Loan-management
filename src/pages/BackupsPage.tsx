@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { backupApi } from "../api";
+import { backupApi, emailApi } from "../api";
 import { useToast } from "../components/Toast";
 import { Button } from "../components/Button";
 import { Modal } from "../components/Modal";
@@ -11,6 +11,7 @@ export default function BackupsPage() {
   const [loading, setLoading] = useState(true);
   const [restoringItem, setRestoringItem] = useState<BackupItem | null>(null);
   const [restoring, setRestoring] = useState(false);
+  const [emailing, setEmailing] = useState(false);
 
   const { showToast } = useToast();
 
@@ -55,6 +56,18 @@ export default function BackupsPage() {
     }
   };
 
+  const handleEmailBackup = async () => {
+    setEmailing(true);
+    try {
+      const res = await emailApi.sendExcelBackup();
+      showToast(res.message || "Excel backup emailed successfully", "success");
+    } catch (err: any) {
+      showToast(err.response?.data?.detail || "Failed to email Excel backup", "error");
+    } finally {
+      setEmailing(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -64,9 +77,14 @@ export default function BackupsPage() {
             Automatic and manual snapshots of master Excel database (`loan_management.xlsx`)
           </p>
         </div>
-        <Button onClick={handleCreateBackup} icon={<Database size={18} />}>
-          Backup Now
-        </Button>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <Button onClick={handleCreateBackup} icon={<Database size={18} />}>
+            Backup Now
+          </Button>
+          <Button variant="secondary" onClick={handleEmailBackup} disabled={emailing} icon={<FileSpreadsheet size={18} />}>
+            {emailing ? "Sending..." : "Email Excel Backup"}
+          </Button>
+        </div>
       </div>
 
       <div className="rounded-xl border border-sky-100 bg-sky-50/50 p-5 flex items-start gap-4">
@@ -75,6 +93,9 @@ export default function BackupsPage() {
           <p className="font-bold text-slate-900">Automatic Excel Safety Protocol Active</p>
           <p>
             An automatic timestamped backup is generated prior to every write/update operation. You can safely restore any past backup snapshot below. A safety snapshot is automatically created before any restore action.
+          </p>
+          <p>
+            Use "Email Excel Backup" to send the current Excel database to vfffinance@gmail.com.
           </p>
         </div>
       </div>

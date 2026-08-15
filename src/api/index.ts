@@ -149,6 +149,10 @@ export const emailApi = {
   sendReport: async (report_type: string, area_id?: string, recipient_email?: string) => {
     const res = await apiClient.post('/email/report', { report_type, area_id, recipient_email });
     return res.data;
+  },
+  sendExcelBackup: async () => {
+    const res = await apiClient.post('/email/excel-backup');
+    return res.data;
   }
 };
 

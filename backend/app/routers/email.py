@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 import io
+import os
 import pandas as pd
 from app.schemas.schemas import EmailReportRequest
 from app.auth.jwt import get_current_user
@@ -73,4 +74,46 @@ def send_email_report(req: EmailReportRequest, current_user: dict = Depends(get_
         "message": f"Report email sent successfully to {to_email}",
         "recipient": to_email,
         "attachments": [excel_filename, pdf_filename]
+    }
+
+@router.post("/excel-backup")
+def send_excel_backup(current_user: dict = Depends(get_current_user)):
+    to_email = settings.REPORT_EMAIL
+    excel_path = settings.EXCEL_FILE_PATH
+
+    if not os.path.exists(excel_path):
+        raise HTTPException(status_code=404, detail="Excel database file not found")
+
+    with open(excel_path, "rb") as excel_file:
+        excel_bytes = excel_file.read()
+
+    timestamp = pd.Timestamp.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"loan_management_backup_{timestamp}.xlsx"
+    subject = "Loan Management Excel Database Backup"
+    body = f"""
+    <h2>Loan Management System - Excel Database Backup</h2>
+    <p>The latest Excel database backup is attached.</p>
+    <p><b>File:</b> {filename}</p>
+    <p><b>Sent To:</b> {to_email}</p>
+    <br>
+    <p>Regards,<br>Finance Office</p>
+    """
+
+    success = send_email_with_attachments(subject, body, to_email, [(filename, excel_bytes)])
+    if not success:
+        raise HTTPException(status_code=500, detail="Failed to send Excel backup email")
+
+    log_audit(
+        current_user["user_id"],
+        current_user["username"],
+        "EMAIL",
+        "BACKUP",
+        filename,
+        f"Emailed Excel database backup to {to_email}",
+    )
+
+    return {
+        "message": f"Excel database backup sent successfully to {to_email}",
+        "recipient": to_email,
+        "attachment": filename,
     }

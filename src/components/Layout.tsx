@@ -3,6 +3,7 @@ import { BarChart3, CalendarDays, ChevronDown, CreditCard, FileBarChart, Home, L
 import { useState } from "react";
 import type { User } from "../types";
 import { Button } from "./Button";
+import { BackButton } from "./BackButton";
 
 const navGroups = [
   { label: "Main Dashboard", path: "/dashboard", icon: Home },
@@ -169,6 +170,7 @@ export function Layout() {
               onClick={() => setOpen(true)}
               aria-label="Open menu"
             />
+            <BackButton fallback="/dashboard" />
             <div>
               <p className="text-sm font-bold text-slate-900">Loan Management System</p>
               <p className="hidden text-xs font-semibold text-slate-500 sm:block">

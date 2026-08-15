@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     SMTP_PORT: int = 587
     SMTP_USERNAME: str = ""
     SMTP_PASSWORD: str = ""
-    REPORT_EMAIL: str = "r10priyadharshini@gmail.com"
+    REPORT_EMAIL: str = "vfffinance@gmail.com"
 
     BASE_DIR: str = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     EXCEL_FILE_PATH: str = os.path.join(BASE_DIR, "data", "loan_management.xlsx")
